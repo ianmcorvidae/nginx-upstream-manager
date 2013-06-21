@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from __future__ import print_function
 from __future__ import unicode_literals
 import unittest
 
@@ -47,7 +46,7 @@ class CodeStyleTestCase(unittest.TestCase):
                                 py_files += [os.path.join(dirpath, filename)]
         else:
             #@TODO: Actually err out and stop the testcase somehow.
-            print("We're not in the root of the project. Aborting this test.")
+            print "We're not in the root of the project. Aborting this test."
         return py_files
 
     def test_pep8_compliance(self):
