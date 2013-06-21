@@ -25,10 +25,12 @@ class Config:
             self.load_raw()
         if self.config is None:
             self.process()
+
     def load_raw(self):
         config_file = open(self.filename)
         self.config_raw = load(config_file, Loader=Loader)
         config_file.close()
+
     def process(self):
         config_raw = self.config_raw
 
@@ -45,6 +47,7 @@ class Config:
             config[cluster_key]['_ip_hash'] = bool(config_raw[cluster_key].get('_ip_hash', False))
             config[cluster_key]['_file'] = dirname(__file__) + '/' + config_raw[cluster_key].get('_file', cluster_key + '.conf')
         self.config = config
+
     def save(self):
         config_file = open(self.filename, 'w')
         config_file.write(dump(self.config_raw, default_flow_style=False, Dumper=Dumper))
@@ -67,16 +70,19 @@ class Config:
 
     def enable(self, cluster, server):
         self._set_prop(cluster, server, 'enabled', 1)
+
     def disable(self, cluster, server):
         self._set_prop(cluster, server, 'enabled', 0)
 
     def backup(self, cluster, server):
         self._set_prop(cluster, server, 'backup', 1)
+
     def nonbackup(self, cluster, server):
         self._set_prop(cluster, server, 'backup', 0)
 
     def down(self, cluster, server):
         self._set_prop(cluster, server, 'down', 1)
+
     def up(self, cluster, server):
         self._set_prop(cluster, server, 'down', 0)
 
@@ -84,10 +90,12 @@ class Config:
         if new is None:
             new = 1
         self._set_prop(cluster, server, 'weight', new)
+
     def max_fails(self, cluster, server, new):
         if new is None:
             new = 1
         self._set_prop(cluster, server, 'max_fails', new)
+
     def fail_timeout(self, cluster, server, new):
         if new is None:
             new = '10s'
@@ -100,6 +108,7 @@ class Cluster:
         self.ip_hash = config.get('_ip_hash')
         self.filename = config.get('_file')
         self.servers = [Server(name, config[name]) for name in config.keys() if name[0] != '_']
+
     def save(self, **kwargs):
         upstream_def = 'upstream %s {\n%%s}\n' % self.name
         if self.ip_hash:
@@ -134,8 +143,10 @@ class Server:
         for prop in ['weight', 'max_fails', 'fail_timeout', 'down', 'backup', 'enabled']:
             setattr(self, prop, config.get(prop, None))
         self.rotate = False
+
     def active(self):
         return self.enabled and not self.down
+
     def comment_line(self, prefix='', postfix=''):
         ret = '# %s' % self.name
         if not self.enabled:
@@ -145,6 +156,7 @@ class Server:
         if self.rotate:
             ret = ret + ' (rotated out)'
         return prefix + ret + postfix
+
     def upstream_line(self, prefix='', postfix=''):
         properties = []
         if self.rotate:
@@ -155,7 +167,7 @@ class Server:
         properties.extend(['server', self.upstream])
         for prop in ['weight', 'max_fails', 'fail_timeout']:
             if getattr(self, prop) is not None:
-                properties.append("%s=%s" % (prop, getattr(self,prop)))
+                properties.append("%s=%s" % (prop, getattr(self, prop)))
         for prop in ['down', 'backup']:
             if getattr(self, prop):
                 properties.append(prop)
@@ -179,7 +191,7 @@ def rotate_action(config, cluster, *other_args):
         print "Done"
         remove(statefile)
     else:
-        print valid[state-1]
+        print valid[state - 1]
         fh = open(statefile, 'w')
         fh.write(str(state))
         fh.close()

@@ -1,8 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import unittest
 
 # Shamelessly cribbed from
@@ -33,7 +31,7 @@ class CodeStyleTestCase(unittest.TestCase):
         import os
         py_files = []
         # Check if we're in the geordi subdir.
-        if os.path.isfile('fabfile.py') and os.path.isdir('geordi'):
+        if os.path.isfile('.travis.yml'):
             for node in os.listdir(os.curdir):
                 if os.path.isfile(node) and self.include_file(node):
                     py_files += [os.path.abspath(node)]
