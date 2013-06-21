@@ -245,7 +245,7 @@ if __name__ == '__main__':
 
     config = Config()
     if args[0] not in config.config.keys():
-        parser.error('Unknown cluster. Available clusters are: ' + ", ".join([k for k in config.keys() if k[0] != '_']))
+        parser.error('Unknown cluster. Available clusters are: ' + ", ".join([k for k in config.config.keys() if k[0] != '_']))
 
     cluster = config.cluster(args[0])
     action = args[1]
