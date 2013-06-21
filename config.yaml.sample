@@ -1,0 +1,16 @@
+_default:
+  enabled: 1
+  fail_timeout: 10s
+  max_fails: 10
+  port: 80
+fancycluster:
+  snap:
+    host: 192.168.0.2
+    weight: 18
+  crackle:
+    host: 192.168.0.3
+    weight: 22
+  pop:
+    enabled: 0
+    host: 192.168.0.4
+    weight: 19
