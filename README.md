@@ -18,3 +18,5 @@ Available actions are:
 * 'rotate' which is designed for automated deployments; called subsequently, it will temporarily disable each of your upstream servers in order, printing out the IP of the server it disabled so you can hook into a deployment script. Once it's done all of them, it'll return 'Done' on the last invocation, and the next one will start another rotation.
 
 See config.yaml.sample for a sample configuration, and fancycluster.conf.sample for the configuration that would generate.
+
+[![Build Status](https://travis-ci.org/ianmcorvidae/nginx-upstream-manager.png)](https://travis-ci.org/ianmcorvidae/nginx-upstream-manager)
