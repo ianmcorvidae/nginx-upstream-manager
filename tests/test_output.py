@@ -12,7 +12,7 @@ class OutputTestCase(unittest.TestCase):
         if os.path.exists('config.yaml'):
             os.rename('config.yaml', 'config.yaml.bak')
         os.rename('config.yaml.sample', 'config.yaml')
-        subprocess.check_output('./upstream_manager.py fancycluster generate', shell=True)
+        subprocess.check_output('python2 ./upstream_manager.py fancycluster generate', shell=True)
         if os.path.exists('.rotate-fancycluster'):
             os.remove('.rotate-fancycluster')
 
@@ -27,11 +27,11 @@ class OutputTestCase(unittest.TestCase):
 
     def test_rotate(self):
         """Test the rotate command"""
-        rotate = subprocess.check_output('./upstream_manager.py fancycluster rotate', shell=True)
+        rotate = subprocess.check_output('python2 ./upstream_manager.py fancycluster rotate', shell=True)
         self.assertEqual(rotate.strip(), '192.168.0.2')
-        rotate = subprocess.check_output('./upstream_manager.py fancycluster rotate', shell=True)
+        rotate = subprocess.check_output('python2 ./upstream_manager.py fancycluster rotate', shell=True)
         self.assertEqual(rotate.strip(), '192.168.0.3')
-        rotate = subprocess.check_output('./upstream_manager.py fancycluster rotate', shell=True)
+        rotate = subprocess.check_output('python2 ./upstream_manager.py fancycluster rotate', shell=True)
         self.assertEqual(rotate.strip(), 'Done')
         self.assertTrue(not os.path.exists('.rotate-fancycluster'))
 
