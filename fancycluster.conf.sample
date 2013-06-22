@@ -1,0 +1,8 @@
+upstream fancycluster {
+    # snap
+    server 192.168.0.2:80 weight=18 max_fails=10 fail_timeout=10s;
+    # crackle
+    server 192.168.0.3:80 weight=22 max_fails=10 fail_timeout=10s;
+    # pop (disabled)
+    ## server 192.168.0.4:80 weight=19 max_fails=10 fail_timeout=10s;
+}
