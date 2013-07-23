@@ -45,6 +45,7 @@ class Config:
                 config[cluster_key][server_key].update(config_raw[cluster_key][server_key])
 
             config[cluster_key]['_ip_hash'] = bool(config_raw[cluster_key].get('_ip_hash', False))
+            config[cluster_key]['_file'] = config_raw[cluster_key]['_file']
         self.config = config
 
     def save(self):
