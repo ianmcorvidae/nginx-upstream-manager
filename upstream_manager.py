@@ -248,7 +248,9 @@ if __name__ == '__main__':
                                      help='generate a concrete nginx configuration from the abstract cluster description')
     generate.set_defaults(run=generate_action)
 
-    # The 'rotate' command does... something
+    # The 'rotate' command does takes one server out of rotation in each
+    # invocation, until each server has been taken out - at which point all
+    # servers are added back to rotation.
     rotate = subparsers.add_parser('rotate')
     rotate.set_defaults(run=rotate_action)
 
