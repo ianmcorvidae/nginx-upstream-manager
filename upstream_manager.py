@@ -207,7 +207,7 @@ def disable_action(config, cluster, args):
     else:
         config.disable(cluster, to_disable)
     config.save()
-    cluster.render()
+    config.cluster(cluster.name).save()
     print "Disabled " + to_disable
 
 def enable_action(config, cluster, args):
@@ -218,7 +218,7 @@ def enable_action(config, cluster, args):
     else:
         config.enable(cluster, to_enable)
     config.save()
-    cluster.render()
+    config.cluster(cluster.name).save()
     print "Enabled " + to_enable
 
 def weight_action(config, cluster, args):
@@ -226,7 +226,7 @@ def weight_action(config, cluster, args):
     weight = args.weight
     config.weight(cluster, server, weight)
     config.save()
-    cluster.render()
+    config.cluster(cluster.name).save()
     print "Changed %s weight to %s" % (server, weight)
 
 ################################################################################
