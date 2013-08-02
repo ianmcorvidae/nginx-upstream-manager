@@ -4,7 +4,7 @@ try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
-from optparse import OptionParser
+import argparse
 from os.path import dirname, exists
 from os import remove
 
@@ -14,7 +14,7 @@ from os import remove
 
 class Config:
     """A class encapsulating the config.yaml config file"""
-    def __init__(self, filename=dirname(__file__) + '/config.yaml'):
+    def __init__(self, filename):
         self.filename = filename
         self.config_raw = None
         self.config = None
@@ -45,7 +45,7 @@ class Config:
                 config[cluster_key][server_key].update(config_raw[cluster_key][server_key])
 
             config[cluster_key]['_ip_hash'] = bool(config_raw[cluster_key].get('_ip_hash', False))
-            config[cluster_key]['_file'] = dirname(__file__) + '/' + config_raw[cluster_key].get('_file', cluster_key + '.conf')
+            config[cluster_key]['_file'] = config_raw[cluster_key]['_file']
         self.config = config
 
     def save(self):
@@ -109,7 +109,7 @@ class Cluster:
         self.filename = config.get('_file')
         self.servers = [Server(name, config[name]) for name in config.keys() if name[0] != '_']
 
-    def save(self, **kwargs):
+    def render(self, **kwargs):
         upstream_def = 'upstream %s {\n%%s}\n' % self.name
         if self.ip_hash:
             upstream_def = upstream_def % '    ip_hash;\n%s'
@@ -123,7 +123,7 @@ class Cluster:
                 count = count + 1
         upstream_def = upstream_def % ''
 
-        config_file = open(self.filename, 'w')
+        config_file = open(kwargs.get('filename', self.filename), 'w')
         config_file.write(upstream_def)
         config_file.close()
 
@@ -177,8 +177,8 @@ class Server:
 # ACTIONS #
 ###########
 
-def rotate_action(config, cluster, *other_args):
-    statefile = dirname(__file__) + '/.rotate-' + cluster.name
+def rotate_action(config, cluster, args):
+    statefile = config.filename + '.rotate-' + cluster.name
     if exists(statefile):
         fh = open(statefile, 'r')
         state = int(fh.read().strip()) + 1
@@ -186,7 +186,7 @@ def rotate_action(config, cluster, *other_args):
     else:
         state = 1
     valid = [server.host for server in cluster.servers if server.active()]
-    cluster.save(rotate=state)
+    cluster.render(rotate=state)
     if state > len(valid):
         print "Done"
         remove(statefile)
@@ -196,73 +196,88 @@ def rotate_action(config, cluster, *other_args):
         fh.write(str(state))
         fh.close()
 
-def generate_action(config, cluster, *other_args):
-    cluster.save()
+def generate_action(config, cluster, args):
+    cluster.render()
     print "Saved"
 
-def disable_action(config, cluster, args, options, parser):
-    if len(args) < 1:
-        parser.error('Please provide a server to disable.')
-    to_disable = args[0]
+def disable_action(config, cluster, args):
+    to_disable = args.server
     if cluster.ip_hash:
         config.down(cluster, to_disable)
     else:
         config.disable(cluster, to_disable)
     config.save()
-    config.cluster(cluster.name).save()
+    config.cluster(cluster.name).render()
     print "Disabled " + to_disable
 
-def enable_action(config, cluster, args, options, parser):
-    if len(args) < 1:
-        parser.error('Please provide a server to enable.')
-    to_enable = args[0]
+def enable_action(config, cluster, args):
+    to_enable = args.server
     if cluster.ip_hash:
         config.enable(cluster, to_enable)
         config.up(cluster, to_enable)
     else:
         config.enable(cluster, to_enable)
     config.save()
-    config.cluster(cluster.name).save()
+    config.cluster(cluster.name).render()
     print "Enabled " + to_enable
 
-def weight_action(config, cluster, args, options, parser):
-    if len(args) < 1:
-        parser.error('Please provide a server.')
-    if len(args) < 2:
-        parser.error('Please provide a new value.')
-    server = args[0]
-    value = args[1]
-    config.weight(cluster, server, value)
+def weight_action(config, cluster, args):
+    server = args.server
+    weight = args.weight
+    config.weight(cluster, server, weight)
     config.save()
-    config.cluster(cluster.name).save()
-    print "Changed %s weight to %s" % (server, value)
+    config.cluster(cluster.name).render()
+    print "Changed %s weight to %s" % (server, weight)
 
-actions = {'generate': generate_action,
-           'rotate': rotate_action,
-           'disable': disable_action,
-           'enable': enable_action,
-           'weight': weight_action}
+################################################################################
+def config(path): return Config(filename=path)
 
 # Run the script!
 if __name__ == '__main__':
-    usage = """Usage: %%prog [options] cluster action [server ...]
-           'cluster' should be a named cluster in your config file
-           'action' should be one of: %s
-           'server' and past is required for some action types""" % ", ".join(actions.keys())
-    parser = OptionParser(usage=usage)
-    (options, args) = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=config,
+                        help='Path to the abstract YAML configuration',
+                        default='config.yaml')
+    parser.add_argument('-o', '--output', help='path to generate nginx configuration')
+    parser.add_argument('cluster')
 
-    if len(args) < 2:
-        parser.error('Please provide both a cluster and an action!')
+    subparsers = parser.add_subparsers()
 
-    config = Config()
-    if args[0] not in config.config.keys():
-        parser.error('Unknown cluster. Available clusters are: ' + ", ".join([k for k in config.config.keys() if k[0] != '_']))
+    # The 'generate' command generates nginx configuration files
+    generate = subparsers.add_parser('generate',
+                                     help='generate a concrete nginx configuration from the abstract cluster description')
+    generate.set_defaults(run=generate_action)
 
-    cluster = config.cluster(args[0])
-    action = args[1]
+    # The 'rotate' command does takes one server out of rotation in each
+    # invocation, until each server has been taken out - at which point all
+    # servers are added back to rotation.
+    rotate = subparsers.add_parser('rotate')
+    rotate.set_defaults(run=rotate_action)
 
-    if action not in actions.keys():
-        parser.error('Unknown action. Available actions are: ' + ", ".join(actions.keys()))
+    # The 'disable' command disables a server in a cluster
+    disable = subparsers.add_parser('disable', help='disable a server in a cluster')
+    disable.add_argument('server')
+    disable.set_defaults(run=disable_action)
 
-    actions[action](config, cluster, args[2:], options, parser)
+    # The 'enable' command enables a server in a cluster
+    enable = subparsers.add_parser('enable', help='enable a server in a cluster')
+    enable.add_argument('server')
+    enable.set_defaults(run=enable_action)
+
+    # The 'weight' command sets a new weight for a server in a cluster
+    weight = subparsers.add_parser('weight', help='set the weight for a server')
+    weight.add_argument('server')
+    weight.add_argument('weight')
+    weight.set_defaults(run=weight_action)
+
+    args = parser.parse_args()
+
+    config = args.config
+    cluster = config.cluster(args.cluster)
+
+    if args.output:
+        cluster.filename = args.output
+    elif not cluster.filename:
+        raise Exception("The configuration for this cluster does not specify _file and you have not specified --output on the command line")
+
+    args.run(config, cluster, args)
